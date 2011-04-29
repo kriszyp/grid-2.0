@@ -1,63 +1,77 @@
-define(['dojo', '../core/_Module'], function(dojo, _Module){
+define(["dojo/_base/kernel", "dojo/declare", "dojo/listen", "dojo/_base/html"], function(dojo, declare, listen){
 	
-return dojox.grid.gridx.core.registerModule(
-dojo.declare('dojox.grid.gridx.modules.ColumnResizer', _Module, {
-	name: 'columnResizer',
-	required: ['body'],
+return declare([], {
 	resizeNode: null,
-	minWidth: 20,	//in px
+	minColumnWidth: 20,	//in px
 	detectWidth: 5,
-	load: function(args, deferLoadFinish, deferStartup){
-		var _this = this, g = this.grid, body = dojo.body();
-		deferStartup.then(function(){
-			_this.connect(g, 'onHeaderMouseMove', '_mousemove');
-			_this.connect(g, 'onHeaderMouseOut', '_mouseout');
-			_this.connect(g, 'onHeaderMouseDown', '_mousedown');
-			_this.connect(body, 'mousemove', '_docMousemove');
-			_this.connect(body, 'onmouseup', '_mouseup');
-			deferLoadFinish.callback();
+	column: function(){
+		var column = this.inherited(arguments);
+		var grid = this;
+		var setWidth = column.setWidth;
+		column.setWidth = function(width){
+			// call original
+			setWidth && setWidth.call(column, width);
+			// call our handler
+			grid.setColumnWidth(column.id, width);
+		};
+		return column;
+	},
+	postCreate: function(){
+		this.inherited(arguments);
+		var grid = this,
+			body = document.body;
+		listen(grid.headerNode, "mousemove", function(e){
+			if(grid._resizing || !grid._getCell(e)){
+				return;
+			}
+			if(grid._isInResizeRange(e)){
+				grid._readyToResize = true;
+				dojo.addClass(dojo.body(), 'dojoxGridxColumnResizing');
+			}else{
+				grid._readyToResize = false;
+				dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');
+			}
+		});
+		listen(grid, ".dojoxGridHeader:mouseout", function(e){ // should this be the mouse.leave event?
+			if(grid._resizing){return;}
+			grid._readyToResize = false;
+			dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');			
+		});
+		listen(grid, ".dojoxGridHeader:mousedown", function(e){
+			//begin resize
+			if(!grid._readyToResize){return;}
+			dojo.setSelectable(grid.grid.domNode, false);
+			grid._resizing = true;
+			grid._startX = e.pageX;
+			grid._gridX = dojo.position(grid.grid.bodyNode).x;
+			grid._showResizer(e);
+		});
+		listen(body, "mousemove", function(e){
+			if(!grid._resizing){return;}
+			grid._updateResizerPosition(e);
+		});
+		listen(body, "mouseup", function(e){
+			//end resize
+			if(!grid._resizing){return;}
+			grid._resizing = false;
+			grid._readyToResize = false;
+			dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');
+			dojo.setSelectable(grid.grid.domNode, true);
+			
+			var cell = grid._targetCell, delta = e.pageX - grid._startX;
+			var w = cell.offsetWidth + delta;
+			if(w < grid.minWidth){w = grid.minWidth;}
+			grid.setWidth(dojo.attr(cell, 'colid'), w);
+			grid._hideResizer();
 		});
 	},
-	getAPIPath: function(){
-		return {
-			columnResizer: this
-		};
-	},
-	columnMixin: {
-		setWidth: function(width){
-			this.grid.columnResizer.setWidth(this.id, width);
-		}
-	},
-	setWidth: function(colId, width){
+	setColumnWidth: function(colId, width){
 		this.grid._columnsById[colId].width = width + 'px';
 		dojo.query('[colid=' + colId + ']', this.grid.domNode).forEach(function(cell){
 			cell.style.width = width + 'px';
 		});
-		this.grid.layout.reLayout();
-		this.grid.body.onChange();
-	},
-	
-	_mousemove: function(e){
-		if(this._resizing || !this._getCell(e)){
-			return;
-		}
-		if(this._isInResizeRange(e)){
-			this._readyToResize = true;
-			dojo.addClass(dojo.body(), 'dojoxGridxColumnResizing');
-		}else{
-			this._readyToResize = false;
-			dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');
-		}
-		
-	},
-	_docMousemove: function(e){
-		if(!this._resizing){return;}
-		this._updateResizerPosition(e);
-	},
-	_mouseout: function(e){
-		if(this._resizing){return;}
-		this._readyToResize = false;
-		dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');
+		// now refresh, things have changed (any plugin might attach to this)
+		this.grid.refresh();
 	},
 	
 	_updateResizerPosition: function(e){
@@ -81,29 +95,6 @@ dojo.declare('dojox.grid.gridx.modules.ColumnResizer', _Module, {
 	},
 	_hideResizer: function(){
 		this._resizer.style.display = 'none';
-	},
-	_mousedown: function(e){
-		//begin resize
-		if(!this._readyToResize){return;}
-		dojo.setSelectable(this.grid.domNode, false);
-		this._resizing = true;
-		this._startX = e.pageX;
-		this._gridX = dojo.position(this.grid.bodyNode).x;
-		this._showResizer(e);
-	},
-	_mouseup: function(e){
-		//end resize
-		if(!this._resizing){return;}
-		this._resizing = false;
-		this._readyToResize = false;
-		dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');
-		dojo.setSelectable(this.grid.domNode, true);
-		
-		var cell = this._targetCell, delta = e.pageX - this._startX;
-		var w = cell.offsetWidth + delta;
-		if(w < this.minWidth){w = this.minWidth;}
-		this.setWidth(dojo.attr(cell, 'colid'), w);
-		this._hideResizer();
 	},
 	
 	_isInResizeRange: function(e){
@@ -140,5 +131,5 @@ dojo.declare('dojox.grid.gridx.modules.ColumnResizer', _Module, {
 		return node;
 	}
 	
-}));
+});
 });
