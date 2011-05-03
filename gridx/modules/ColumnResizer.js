@@ -1,4 +1,4 @@
-define(["dojo/_base/kernel", "dojo/declare", "dojo/listen", "dojo/_base/html"], function(dojo, declare, listen){
+define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/listen", "dojo/_base/html"], function(dojo, declare, listen){
 	
 return declare([], {
 	resizeNode: null,
@@ -32,46 +32,57 @@ return declare([], {
 				dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');
 			}
 		});
-		listen(grid, ".dojoxGridHeader:mouseout", function(e){ // should this be the mouse.leave event?
+		listen(grid, ".dojoxGridxHeader:mouseout", function(e){ // should this be the mouse.leave event?
+			console.log("mouseout");
 			if(grid._resizing){return;}
 			grid._readyToResize = false;
 			dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');			
 		});
-		listen(grid, ".dojoxGridHeader:mousedown", function(e){
+		listen(grid, ".dojoxGridxHeader:mousedown", function(e){
+			console.log("mousedown");
 			//begin resize
 			if(!grid._readyToResize){return;}
-			dojo.setSelectable(grid.grid.domNode, false);
+			dojo.setSelectable(grid.domNode, false);
 			grid._resizing = true;
 			grid._startX = e.pageX;
-			grid._gridX = dojo.position(grid.grid.bodyNode).x;
-			grid._showResizer(e);
+			grid._gridX = dojo.position(grid.bodyNode).x;
+			
+			// show resizer inlined
+			if(!grid._resizer){
+				grid._resizer = dojo.create('div', {
+					className: 'dojoxGridxColumnResizer'}, 
+					grid.domNode, 'last');
+		    	listen(grid._resizer, 'mouseup', mouseup);
+			}
+			grid._resizer.style.display = 'block';
+			grid._updateResizerPosition(e);
 		});
 		listen(body, "mousemove", function(e){
 			if(!grid._resizing){return;}
 			grid._updateResizerPosition(e);
 		});
-		listen(body, "mouseup", function(e){
+		listen(body, "mouseup", mouseup);
+		function mouseup(e){
 			//end resize
 			if(!grid._resizing){return;}
 			grid._resizing = false;
 			grid._readyToResize = false;
 			dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');
-			dojo.setSelectable(grid.grid.domNode, true);
+			dojo.setSelectable(grid.domNode, true);
 			
 			var cell = grid._targetCell, delta = e.pageX - grid._startX;
 			var w = cell.offsetWidth + delta;
 			if(w < grid.minWidth){w = grid.minWidth;}
-			grid.setWidth(dojo.attr(cell, 'colid'), w);
+			grid.setColumnWidth(dojo.attr(cell, 'colid'), w);
 			grid._hideResizer();
-		});
+		}
 	},
 	setColumnWidth: function(colId, width){
-		this.grid._columnsById[colId].width = width + 'px';
-		dojo.query('[colid=' + colId + ']', this.grid.domNode).forEach(function(cell){
+		dojo.query('[colid=' + colId + ']', this.domNode).forEach(function(cell){
 			cell.style.width = width + 'px';
 		});
 		// now refresh, things have changed (any plugin might attach to this)
-		this.grid.refresh();
+		//this.refresh();
 	},
 	
 	_updateResizerPosition: function(e){
@@ -82,16 +93,6 @@ return declare([], {
 			left = this._startX - this._gridX - (cell.offsetWidth - this.minWidth); 
 		}
 		this._resizer.style.left = left  + 'px';
-	},
-	_showResizer: function(e){
-		if(!this._resizer){
-			this._resizer = dojo.create('div', {
-				className: 'dojoxGridxColumnResizer'}, 
-				this.grid.domNode, 'last');
-	    	this.connect(this._resizer, 'mouseup', '_mouseup');
-		}
-		this._resizer.style.display = 'block';
-		this._updateResizerPosition(e);
 	},
 	_hideResizer: function(){
 		this._resizer.style.display = 'none';
