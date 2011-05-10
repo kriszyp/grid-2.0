@@ -1,4 +1,4 @@
-define(['dojo', '../../core/_Module'], function(dojo, _Module){
+define(['dojo', '../../core/_Module', 'cssx/css!../../resources/select.css'], function(dojo, _Module){
 
 return dojox.grid.gridx.core.registerModule(
 dojo.declare('dojox.grid.gridx.modules.select.Column', _Module, {

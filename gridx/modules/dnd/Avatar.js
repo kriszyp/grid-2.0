@@ -1,6 +1,6 @@
 define(['dojo', 'dojo/dnd/Avatar'], function(dojo, Avatar){
 
-return dojo.declare("dojox.grid.gridx.modules.dnd.Avatar", Avatar, {
+return dojo.declare([Avatar], {
 	construct: function(manager){
 		// summary:
 		//		constructor function;

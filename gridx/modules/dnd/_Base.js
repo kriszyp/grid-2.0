@@ -1,11 +1,11 @@
-define(['dojo', '../../core/_Module', './Avatar', 'dojo/dnd/Source'], function(dojo, _Module, Avatar, Source){
+define(['dojo', 'dojo/listen', './Avatar', 'dojo/dnd/Source', 'cssx/css!../../resources/dnd.css'], function(dojo, listen, Avatar, Source){
 
-return dojo.declare('dojox.grid.gridx.modules.dnd._Base', _Module, {
-	load: function(args, loaded){
-		dojo.mixin(this, args);
-		this._selectStatus = this.grid.selectDisabled;
+return dojo.declare([], {
+	postCreate: function(){
+		this.inherited(arguments);
+		this._selectStatus = this.selectDisabled;
 		this._node = dojo.create('div');
-		this._source = new Source(this.grid.bodyNode, {
+		this._source = new Source(this.bodyNode, {
 			isSource: false,
 			accept: this.accept,
 			delay: this.delay,
@@ -18,32 +18,21 @@ return dojo.declare('dojox.grid.gridx.modules.dnd._Base', _Module, {
 			onDropInternal: dojo.hitch(this, '_onDropInternal')
 		});
 		this._source["dnd" + this.type] = this;
-		this.batchConnect(
-            [this.grid, 'onCellMouseOver', '_checkDndReady'],
-            [this.grid, 'onCellMouseOut', '_dismissDndReady'],
-            [this.grid, 'onCellMouseDown', '_startDnd'],
-			[dojo.doc, 'onmouseup', '_endDnd'],
-			[dojo.doc, 'onmousemove', '_onMouseMove']
-		);
-		this.subscribe("/dnd/cancel", '_endDnd');
-		this._load(args);
-		loaded.callback();
+		this._source["dnd-id-" + this.id] = this;
+		listen(this.domNode, "td:mouseover", dojo.hitch(this, '_checkDndReady'));
+		listen(this.domNode, "td:mouseout", dojo.hitch(this, '_dismissDndReady'));
+		listen(this.domNode, "td:mousedown", dojo.hitch(this, '_startDnd'));
+		listen(dojo.doc, "mouseup", dojo.hitch(this, '_endDnd'));
+		listen(dojo.doc, "mousemove", dojo.hitch(this, '_onMouseMove'));
+		dojo.subscribe("/dnd/cancel", dojo.hitch(this, '_endDnd'));
 	},
 	
-	destory: function(){
+	destroy: function(){
 		this.inherited(arguments);
-		this._source.destory();
+		this._source.destroy();
 		dojo.destroy(this._node);
 	},
 
-	getAPIPath: function(){
-		var ret = {
-			dnd: {}
-		};
-		ret.dnd[this.type.toLowerCase()] = this;
-		return ret;
-	},
-	
 	//Public----------------------------------------------------------------------
 	
 	delay: 2,
@@ -96,7 +85,7 @@ return dojo.declare('dojox.grid.gridx.modules.dnd._Base', _Module, {
 
 	//Private-----------------------------------------------------------------
 	_isOutOfGrid: function(evt){
-		var gridPos = dojo.position(this.grid.domNode), x = evt.clientX, y = evt.clientY;
+		var gridPos = dojo.position(this.domNode), x = evt.clientX, y = evt.clientY;
 		return y < gridPos.y || y > gridPos.y + gridPos.h ||
 			x < gridPos.x || x > gridPos.x + gridPos.w;
 	},
@@ -117,15 +106,15 @@ return dojo.declare('dojox.grid.gridx.modules.dnd._Base', _Module, {
 	
 	_checkDndReady: function(evt){
 		if(!this._dndReady && !this._dnding && this._extraCheckReady(evt)){
-			this._selectStatus = this.grid.selectDisabled;
-			this.grid.selectDisabled = true;
+			this._selectStatus = this.selectDisabled;
+			this.selectDisabled = true;
 			this._dndReady = true;
 		}
 	},
 	
 	_dismissDndReady: function(){
 		if(this._dndReady){
-			this.grid.selectDisabled = this._selectStatus;
+			this.selectDisabled = this._selectStatus;
 			delete this._dndReady;
 		}
 	},
@@ -176,8 +165,8 @@ return dojo.declare('dojox.grid.gridx.modules.dnd._Base', _Module, {
 			delete this._extDnding;
 			delete this._extSource;
 			this._destroyUI();
-			dojo.setSelectable(this.grid.domNode, true);
-			this.grid.selectDisabled = this._selectStatus;	
+			dojo.setSelectable(this.domNode, true);
+			this.selectDisabled = this._selectStatus;	
 		}
 		this._source.isSource = false;
 	},
@@ -200,11 +189,11 @@ return dojo.declare('dojox.grid.gridx.modules.dnd._Base', _Module, {
 	
 	_markTargetAnchor: function(evt){
 		var targetAnchor = this._targetAnchor,
-			containerPos = dojo.position(this.grid.mainNode);
+			containerPos = dojo.position(this.bodyNode);
 		if(!targetAnchor){
 			targetAnchor = this._targetAnchor = this._createTargetAnchor();
 			dojo.style(targetAnchor, "display", "none");
-			this.grid.mainNode.appendChild(targetAnchor);
+			this.bodyNode.appendChild(targetAnchor);
 		}
 		var pos = this._calcTargetAnchorPos(evt, containerPos);			
 		if(pos){
@@ -230,7 +219,7 @@ return dojo.declare('dojox.grid.gridx.modules.dnd._Base', _Module, {
 			this._dnding = true;
 			this._createUI();
 			this._markTargetAnchor(evt);
-			dojo.setSelectable(this.grid.domNode, false);	
+			dojo.setSelectable(this.domNode, false);	
 		}
 	},
 	
@@ -244,13 +233,13 @@ return dojo.declare('dojox.grid.gridx.modules.dnd._Base', _Module, {
 	_checkAcceptance: function(source){
 		var res = Source.prototype.checkAcceptance.apply(this._source, arguments);
 		if(res){
-			if(source[this.name]){
-				var g = source[this.name].grid;
-				if((g === this.grid && !this.canRearrange) || //Cannot re-arrange
-					(g !== this.grid && (!this.canDragIn || !source[this.name].canDragOut))	//Cannot drag in or drag out
+			if(source["dnd-id-" + this.id]){
+				var g = source["dnd-id-" + this.id];
+				if((g === this && !this.canRearrange) || //Cannot re-arrange
+					(g !== this && (!this.canDragIn || !source["dnd-id-" + this.id].canDragOut))	//Cannot drag in or drag out
 				){
 					return false;
-				}else if(g !== this.grid){
+				}else if(g !== this){
 					this._sourceGrid = g;
 					this._extDnding = true;
 				}

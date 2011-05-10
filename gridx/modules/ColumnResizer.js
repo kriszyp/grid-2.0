@@ -1,4 +1,4 @@
-define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/listen", "dojo/_base/html"], function(dojo, declare, listen){
+define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/listen", "dojo/_base/html", 'cssx/css!../resources/resize.css'], function(dojo, declare, listen){
 	
 return declare([], {
 	resizeNode: null,
@@ -76,13 +76,6 @@ return declare([], {
 			grid.setColumnWidth(dojo.attr(cell, 'colid'), w);
 			grid._hideResizer();
 		}
-	},
-	setColumnWidth: function(colId, width){
-		dojo.query('[colid=' + colId + ']', this.domNode).forEach(function(cell){
-			cell.style.width = width + 'px';
-		});
-		// now refresh, things have changed (any plugin might attach to this)
-		//this.refresh();
 	},
 	
 	_updateResizerPosition: function(e){
