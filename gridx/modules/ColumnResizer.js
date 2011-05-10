@@ -16,6 +16,9 @@ return declare([], {
 		};
 		return column;
 	},
+	setColumnWidth: function(colId, width){
+		this.styleColumn(colId, "width: " + width + 'px;');
+	},
 	postCreate: function(){
 		this.inherited(arguments);
 		var grid = this,
@@ -33,13 +36,11 @@ return declare([], {
 			}
 		});
 		listen(grid, ".dojoxGridxHeader:mouseout", function(e){ // should this be the mouse.leave event?
-			console.log("mouseout");
 			if(grid._resizing){return;}
 			grid._readyToResize = false;
 			dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');			
 		});
 		listen(grid, ".dojoxGridxHeader:mousedown", function(e){
-			console.log("mousedown");
 			//begin resize
 			if(!grid._readyToResize){return;}
 			dojo.setSelectable(grid.domNode, false);
