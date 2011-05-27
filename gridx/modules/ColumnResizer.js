@@ -1,4 +1,4 @@
-define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/listen", "dojo/_base/html", 'cssx/css!../resources/resize.css'], function(dojo, declare, listen){
+define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/on", "dojo/_base/html", 'cssx/css!../resources/resize.css'], function(dojo, declare, listen){
 	
 return declare([], {
 	resizeNode: null,
@@ -35,12 +35,12 @@ return declare([], {
 				dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');
 			}
 		});
-		listen(grid, ".dojoxGridxHeader:mouseout", function(e){ // should this be the mouse.leave event?
+		listen(grid, '.' + this.getCSSClass("header") + ":mouseout", function(e){ // should this be the mouse.leave event?
 			if(grid._resizing){return;}
 			grid._readyToResize = false;
 			dojo.removeClass(dojo.body(), 'dojoxGridxColumnResizing');			
 		});
-		listen(grid, ".dojoxGridxHeader:mousedown", function(e){
+		listen(grid, '.' + this.getCSSClass("header") + ":mousedown", function(e){
 			//begin resize
 			if(!grid._readyToResize){return;}
 			dojo.setSelectable(grid.domNode, false);

@@ -1,4 +1,4 @@
-define(['dojo', 'dojo/listen', './Avatar', 'dojo/dnd/Source', 'cssx/css!../../resources/dnd.css'], function(dojo, listen, Avatar, Source){
+define(['dojo', 'dojo/on', './Avatar', 'dojo/dnd/Source', 'cssx/css!../../resources/dnd.css'], function(dojo, listen, Avatar, Source){
 
 return dojo.declare([], {
 	postCreate: function(){

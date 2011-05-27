@@ -52,14 +52,14 @@ return dojo.declare([_Base], {
 			};
 		};
 		while(node){
-			if(dojo.hasClass(node, 'dojoxGridxRow')){
+			if(dojo.hasClass(node, this.getCSSClass("row"))){
 				return func(node);
 			}
 			node = node.parentNode;
 		}
 		//For FF, when dragging from another grid, the evt.target is always grid.bodyNode!
 		// so have to get the row node by position, which is very slow.
-		if(dojo.isFF && dojo.query(".dojoxGridxRow", this.bodyNode).some(function(rowNode){
+		if(dojo.isFF && dojo.query(this.getCSSClass("row"), this.bodyNode).some(function(rowNode){
 			var rowPos = dojo.position(rowNode);
 			if(rowPos.y <= evt.clientY && rowPos.y + rowPos.h >= evt.clientY){
 				node = rowNode;
